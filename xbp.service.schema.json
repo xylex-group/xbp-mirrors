@@ -1,0 +1,565 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/xylex-group/xbp/main/schemas/xbp.project.schema.json",
+  "title": "XBP project config (.xbp/xbp.yaml)",
+  "description": "Canonical project configuration for the XBP CLI. Used by editors via yaml-language-server / VS Code YAML extension.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["project_name", "port", "build_dir"],
+  "properties": {
+    "project_name": {
+      "type": "string",
+      "description": "Human-readable project name (used in dashboards, release titles, and service defaults)."
+    },
+    "version": {
+      "type": "string",
+      "description": "Project version string (semver recommended). Default 0.1.0 when omitted on parse.",
+      "default": "0.1.0",
+      "examples": ["0.1.0", "1.14.2", "4.0.0"]
+    },
+    "port": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 65535,
+      "description": "Primary service port for the root project / default service."
+    },
+    "build_dir": {
+      "type": "string",
+      "description": "Build / working directory relative to the project root (often `.`)."
+    },
+    "app_type": {
+      "type": ["string", "null"],
+      "description": "Detected or declared application type (rust, nextjs, nodejs, docker, python, …)."
+    },
+    "target": {
+      "type": ["string", "null"],
+      "description": "Legacy alias for app/runtime target (prefer app_type / per-service target)."
+    },
+    "branch": {
+      "type": ["string", "null"],
+      "description": "Legacy default git branch for the root service."
+    },
+    "build_command": {
+      "type": ["string", "null"],
+      "description": "Root build command when not using multi-service `services[].commands`."
+    },
+    "start_command": {
+      "type": ["string", "null"],
+      "description": "Root start command."
+    },
+    "install_command": {
+      "type": ["string", "null"],
+      "description": "Root install/bootstrap command."
+    },
+    "environment": {
+      "type": ["object", "null"],
+      "description": "Environment variables (values may be literals or `${ENV}` placeholders).",
+      "additionalProperties": { "type": "string" }
+    },
+    "url": {
+      "type": ["string", "null"],
+      "description": "Public URL for the primary service."
+    },
+    "url_storybook": {
+      "type": ["string", "null"]
+    },
+    "port_storybook": {
+      "type": ["integer", "null"],
+      "minimum": 1,
+      "maximum": 65535
+    },
+    "crate_name": {
+      "type": ["string", "null"],
+      "description": "Legacy Rust crate name for single-crate projects."
+    },
+    "npm_script": {
+      "type": ["string", "null"],
+      "description": "Legacy npm script name for start."
+    },
+    "services": {
+      "type": ["array", "null"],
+      "description": "Multi-service definitions (discovered by `xbp version discover` or hand-authored).",
+      "items": { "$ref": "#/$defs/service" }
+    },
+    "workers": {
+      "type": ["array", "null"],
+      "description": "Cloudflare Workers (and optional Containers) managed via `xbp cloudflare` / workers commands.",
+      "items": { "$ref": "#/$defs/worker" }
+    },
+    "version_targets": {
+      "type": "array",
+      "description": "Project-level version manifest paths (Cargo.toml, package.json, …) always bumped with the project version.",
+      "items": { "type": "string" }
+    },
+    "version_domains": {
+      "type": "array",
+      "description": "Explicit multi-version domain policies (`xbp version domain`).",
+      "items": { "$ref": "#/$defs/versionDomain" }
+    },
+    "ignore_paths": {
+      "type": "array",
+      "description": "Gitignore-style paths skipped by service discovery and version-target discovery (not worktree-watch). Aliases: ignored_paths, xbpignore.",
+      "items": { "type": "string" }
+    },
+    "watch_ignore_paths": {
+      "type": "array",
+      "description": "Worktree-watch-only ignore patterns. Alias: watch_ignore.",
+      "items": { "type": "string" }
+    },
+    "versioning_disabled": {
+      "type": "array",
+      "description": "Service names or root globs excluded from version bumps.",
+      "items": { "type": "string" }
+    },
+    "release_disabled": {
+      "type": "array",
+      "description": "Service names or root globs excluded from releases.",
+      "items": { "type": "string" }
+    },
+    "linear": {
+      "$ref": "#/$defs/linear",
+      "description": "Repo-scoped Linear settings (team defaults, release initiatives)."
+    },
+    "github": {
+      "$ref": "#/$defs/github",
+      "description": "GitHub repository, auto-push, release-branch, and runners settings."
+    },
+    "publish": {
+      "$ref": "#/$defs/publish",
+      "description": "npm / crates.io / cargo-dist publish settings."
+    },
+    "openapi": {
+      "$ref": "#/$defs/projectOpenapi",
+      "description": "Project-level OpenAPI generation settings."
+    },
+    "todos": {
+      "$ref": "#/$defs/todos",
+      "description": "TODO→issue automation defaults for `xbp todos` (project overrides global)."
+    },
+    "database": {
+      "$ref": "#/$defs/database"
+    },
+    "systemd": {
+      "$ref": "#/$defs/systemd"
+    },
+    "systemd_service_name": {
+      "type": ["string", "null"]
+    },
+    "kafka_brokers": { "type": ["string", "null"] },
+    "kafka_topic": { "type": ["string", "null"] },
+    "kafka_public_url": { "type": ["string", "null"] },
+    "log_files": {
+      "type": ["array", "null"],
+      "items": { "type": "string" }
+    },
+    "monitor_url": { "type": ["string", "null"] },
+    "monitor_method": {
+      "type": ["string", "null"],
+      "enum": ["GET", "POST", "HEAD", "PUT", "PATCH", "DELETE", null]
+    },
+    "monitor_expected_code": {
+      "type": ["integer", "null"],
+      "minimum": 100,
+      "maximum": 599
+    },
+    "monitor_interval": {
+      "type": ["integer", "null"],
+      "minimum": 1,
+      "description": "Monitor interval in seconds."
+    }
+  },
+  "$defs": {
+    "service": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["name", "target", "branch", "port"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Stable service id (not a packaging path; never include crate versions)."
+        },
+        "target": {
+          "type": "string",
+          "description": "Runtime/target kind: rust, nextjs, nodejs, expressjs, docker, python, …"
+        },
+        "branch": {
+          "type": "string",
+          "description": "Default git branch for this service."
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "root_directory": {
+          "type": ["string", "null"],
+          "description": "Project-relative service root (e.g. services/athena-auth, crates/cli)."
+        },
+        "environment": {
+          "type": ["object", "null"],
+          "additionalProperties": { "type": "string" }
+        },
+        "url": { "type": ["string", "null"] },
+        "healthcheck_path": { "type": ["string", "null"] },
+        "restart_policy": {
+          "type": ["string", "null"],
+          "examples": ["on_failure", "always", "no"]
+        },
+        "restart_policy_max_failure_count": {
+          "type": ["integer", "null"],
+          "minimum": 0
+        },
+        "start_wrapper": {
+          "type": ["string", "null"],
+          "examples": ["pm2", "systemd", "none"]
+        },
+        "commands": { "$ref": "#/$defs/serviceCommands" },
+        "force_run_from_root": { "type": ["boolean", "null"] },
+        "version_targets": {
+          "type": ["array", "null"],
+          "items": { "type": "string" },
+          "description": "Manifests to bump for this service (Cargo.toml, package.json, …)."
+        },
+        "watch_paths": {
+          "type": ["array", "null"],
+          "items": { "type": "string" },
+          "description": "Dirty-tree path prefixes that mark this service as a version candidate."
+        },
+        "versioning": {
+          "type": ["boolean", "null"],
+          "description": "When false, exclude from version bumps. Aliases: versioning_enabled, enable_versioning."
+        },
+        "release": {
+          "type": ["boolean", "null"],
+          "description": "When false, exclude from releases (bumps may still run). Aliases: release_enabled, enable_release."
+        },
+        "systemd_service_name": { "type": ["string", "null"] },
+        "systemd": {
+          "oneOf": [
+            { "type": "string" },
+            { "$ref": "#/$defs/systemd" },
+            { "type": "null" }
+          ]
+        },
+        "openapi": { "$ref": "#/$defs/serviceOpenapi" }
+      }
+    },
+    "serviceCommands": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "properties": {
+        "pre": { "type": ["string", "null"] },
+        "install": { "type": ["string", "null"] },
+        "build": { "type": ["string", "null"] },
+        "start": { "type": ["string", "null"] },
+        "dev": { "type": ["string", "null"] }
+      },
+      "description": "Known keys plus arbitrary custom command names (test, lint, publish, …)."
+    },
+    "worker": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["name", "root"],
+      "properties": {
+        "name": { "type": "string" },
+        "root": {
+          "type": "string",
+          "description": "Project-relative Worker root (wrangler.toml / wrangler.jsonc)."
+        },
+        "script_name": { "type": ["string", "null"] },
+        "service": { "type": ["string", "null"] },
+        "deploy": {
+          "type": ["object", "null"],
+          "additionalProperties": true,
+          "properties": {
+            "command": { "type": ["string", "null"] },
+            "ci_script": { "type": ["string", "null"] },
+            "select_script": { "type": ["string", "null"] }
+          }
+        },
+        "container": {
+          "type": ["object", "null"],
+          "additionalProperties": true,
+          "properties": {
+            "class_name": { "type": ["string", "null"] },
+            "binding": { "type": ["string", "null"] },
+            "dockerfile": { "type": ["string", "null"] },
+            "port": { "type": ["integer", "null"] },
+            "application_id": { "type": ["string", "null"] },
+            "healthcheck_path": { "type": ["string", "null"] },
+            "health_urls": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "expected_image_name": { "type": ["string", "null"] }
+          }
+        }
+      }
+    },
+    "versionDomain": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["name", "root", "version"],
+      "properties": {
+        "name": { "type": "string" },
+        "root": { "type": "string" },
+        "version": { "type": "string" },
+        "owned_package_names": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "owned_package_prefixes": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "version_surfaces": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["kind", "path"],
+            "properties": {
+              "kind": { "type": "string" },
+              "path": { "type": "string" },
+              "key": { "type": ["string", "null"] },
+              "marker": { "type": ["string", "null"] },
+              "packages": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          }
+        },
+        "allowed_bumps": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "validation_commands": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "image_version_probe": { "type": ["string", "null"] },
+        "live_health_urls": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "cloudflare_app": { "type": ["string", "null"] }
+      }
+    },
+    "linear": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "default_team_id": { "type": ["string", "null"] },
+        "default_team_key": {
+          "type": ["string", "null"],
+          "description": "Team key such as XLX."
+        },
+        "organization_name": {
+          "type": ["string", "null"],
+          "description": "Linear org slug for human URLs. Alias: org_name."
+        },
+        "release": {
+          "type": ["object", "null"],
+          "additionalProperties": true,
+          "description": "Release → Linear initiative publish settings."
+        }
+      }
+    },
+    "github": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "repository": {
+          "type": ["string", "null"],
+          "description": "owner/repo when origin cannot be inferred."
+        },
+        "auto_push_on_commit": {
+          "type": "boolean",
+          "default": true,
+          "description": "When true, `xbp commit` pushes after creating the commit."
+        },
+        "release_branch": {
+          "type": ["object", "null"],
+          "additionalProperties": true
+        },
+        "runners": {
+          "type": ["object", "null"],
+          "additionalProperties": true
+        }
+      }
+    },
+    "publish": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "npm": { "$ref": "#/$defs/publishTarget" },
+        "crates": { "$ref": "#/$defs/publishTarget" },
+        "dist": { "$ref": "#/$defs/publishDist" }
+      }
+    },
+    "publishTarget": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "enabled": { "type": ["boolean", "null"] },
+        "package_name": { "type": ["string", "null"] },
+        "working_directory": { "type": ["string", "null"] },
+        "manifest_path": { "type": ["string", "null"] },
+        "token": { "type": ["string", "null"] },
+        "preflight_commands": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "publish_command": { "type": ["string", "null"] },
+        "use_wsl": { "type": ["boolean", "null"] },
+        "wsl_distribution": { "type": ["string", "null"] },
+        "generate_npmrc": { "type": ["boolean", "null"] },
+        "access": { "type": ["string", "null"] }
+      }
+    },
+    "publishDist": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "cargo-dist settings for GitHub release assets/installers.",
+      "properties": {
+        "enabled": { "type": ["boolean", "null"] },
+        "packages": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "installers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "examples": ["shell", "powershell", "npm", "homebrew", "msi"]
+          }
+        },
+        "targets": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "artifacts_modes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Alias: artifacts. host | local | global."
+        },
+        "allow_dirty": { "type": ["boolean", "null"] },
+        "generate_ci": { "type": ["boolean", "null"] },
+        "tool": { "type": ["string", "null"] }
+      }
+    },
+    "projectOpenapi": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "enabled": { "type": ["boolean", "null"] },
+        "auto_detect_services": { "type": ["boolean", "null"] },
+        "generate_on_release": { "type": ["boolean", "null"] },
+        "service_defaults": {
+          "type": ["object", "null"],
+          "additionalProperties": true
+        },
+        "aggregate": {
+          "type": ["object", "null"],
+          "additionalProperties": true
+        }
+      }
+    },
+    "serviceOpenapi": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Per-service OpenAPI overrides."
+    },
+    "systemd": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "environment_files": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "config_paths": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "read_write_paths": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "runtime_directories": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "state_directories": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "database": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "enabled": { "type": ["boolean", "null"] },
+        "backend": { "type": ["string", "null"] },
+        "url_env": { "type": ["string", "null"] },
+        "key_env": { "type": ["string", "null"] },
+        "schema": { "type": ["string", "null"] }
+      }
+    },
+    "todos": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Defaults for `xbp todos scan|sync` (project overrides global config).",
+      "properties": {
+        "default_to": {
+          "type": ["string", "null"],
+          "enum": ["linear", "github", "both", null]
+        },
+        "auto_yes": { "type": ["boolean", "null"] },
+        "prompt_sync_after_scan": { "type": ["boolean", "null"] },
+        "linear_labels": {
+          "type": ["array", "null"],
+          "items": { "type": "string" }
+        },
+        "github_labels": {
+          "type": ["array", "null"],
+          "items": { "type": "string" }
+        },
+        "linear_assignee": { "type": ["string", "null"] },
+        "linear_project": {
+          "type": ["string", "null"],
+          "description": "Linear project name, id, or slug for created issues."
+        },
+        "watch_paths": {
+          "type": ["array", "null"],
+          "items": { "type": "string" },
+          "description": "Repo-relative path prefixes to scan for TODOs (empty = whole tree)."
+        },
+        "linear_link_wait_secs": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "description": "Seconds to wait for Linear GitHub auto-link after creating GitHub issues."
+        },
+        "linear_link_poll_ms": {
+          "type": ["integer", "null"],
+          "minimum": 100,
+          "description": "Poll interval in ms while waiting for Linear auto-link."
+        },
+        "purge_duplicate_linear": {
+          "type": ["boolean", "null"],
+          "description": "Archive xbp-created Linear issues that duplicate auto-linked ones."
+        },
+        "kinds": {
+          "type": ["array", "null"],
+          "items": { "type": "string" }
+        },
+        "priority_by_kind": {
+          "type": ["object", "null"],
+          "additionalProperties": { "type": "integer" }
+        },
+        "annotate_source": { "type": ["boolean", "null"] }
+      }
+    }
+  }
+}
