@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/xylex-group/xbp/main/schemas/xbp.project.schema.json",
+  "$id": "https://raw.githubusercontent.com/xylex-group/xbp-mirrors/refs/heads/main/xbp.service.schema.json",
   "title": "XBP project config (.xbp/xbp.yaml)",
   "description": "Canonical project configuration for the XBP CLI. Used by editors via yaml-language-server / VS Code YAML extension.",
   "type": "object",
