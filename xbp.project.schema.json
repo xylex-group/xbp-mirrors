@@ -117,30 +117,53 @@
       "items": { "type": "string" }
     },
     "linear": {
-      "$ref": "#/$defs/linear",
+      "oneOf": [
+        { "$ref": "#/$defs/linear" },
+        { "type": "null" }
+      ],
       "description": "Repo-scoped Linear settings (team defaults, release initiatives)."
     },
     "github": {
-      "$ref": "#/$defs/github",
-      "description": "GitHub repository, auto-push, release-branch, and runners settings."
+      "oneOf": [
+        { "type": "string", "description": "Bare owner/repo shorthand (maps to github.repository)." },
+        { "$ref": "#/$defs/github" },
+        { "type": "null" }
+      ],
+      "description": "GitHub repository, auto-push, release-branch, and runners settings. Accepts a bare owner/repo string, an object, or null."
     },
     "publish": {
-      "$ref": "#/$defs/publish",
+      "oneOf": [
+        { "$ref": "#/$defs/publish" },
+        { "type": "null" }
+      ],
       "description": "npm / crates.io / cargo-dist publish settings."
     },
     "openapi": {
-      "$ref": "#/$defs/projectOpenapi",
+      "oneOf": [
+        { "$ref": "#/$defs/projectOpenapi" },
+        { "type": "null" }
+      ],
       "description": "Project-level OpenAPI generation settings."
     },
     "todos": {
-      "$ref": "#/$defs/todos",
+      "oneOf": [
+        { "$ref": "#/$defs/todos" },
+        { "type": "null" }
+      ],
       "description": "TODO→issue automation defaults for `xbp todos` (project overrides global)."
     },
     "database": {
-      "$ref": "#/$defs/database"
+      "oneOf": [
+        { "$ref": "#/$defs/database" },
+        { "type": "null" }
+      ]
     },
     "systemd": {
-      "$ref": "#/$defs/systemd"
+      "oneOf": [
+        { "type": "string" },
+        { "$ref": "#/$defs/systemd" },
+        { "type": "null" }
+      ]
     },
     "systemd_service_name": {
       "type": ["string", "null"]
@@ -253,13 +276,24 @@
             { "type": "null" }
           ]
         },
-        "openapi": { "$ref": "#/$defs/serviceOpenapi" },
+        "openapi": {
+          "oneOf": [
+            { "$ref": "#/$defs/serviceOpenapi" },
+            { "type": "null" }
+          ]
+        },
         "oci": {
-          "$ref": "#/$defs/serviceOci",
+          "oneOf": [
+            { "$ref": "#/$defs/serviceOci" },
+            { "type": "null" }
+          ],
           "description": "Optional OCI image config for this service (used by `xbp deploy` / `xbp oci`)."
         },
         "deploy": {
-          "$ref": "#/$defs/serviceDeploy",
+          "oneOf": [
+            { "$ref": "#/$defs/serviceDeploy" },
+            { "type": "null" }
+          ],
           "description": "Optional release/deploy orchestration for this service (`xbp deploy <name>`). Distinct from commands.deploy (a local script name)."
         }
       }
@@ -471,9 +505,24 @@
       "type": "object",
       "additionalProperties": true,
       "properties": {
-        "npm": { "$ref": "#/$defs/publishTarget" },
-        "crates": { "$ref": "#/$defs/publishTarget" },
-        "dist": { "$ref": "#/$defs/publishDist" }
+        "npm": {
+          "oneOf": [
+            { "$ref": "#/$defs/publishTarget" },
+            { "type": "null" }
+          ]
+        },
+        "crates": {
+          "oneOf": [
+            { "$ref": "#/$defs/publishTarget" },
+            { "type": "null" }
+          ]
+        },
+        "dist": {
+          "oneOf": [
+            { "$ref": "#/$defs/publishDist" },
+            { "type": "null" }
+          ]
+        }
       }
     },
     "publishTarget": {
@@ -816,7 +865,11 @@
           "description": "HTTP(S) health URLs to probe after rollout."
         },
         "kubernetes": {
-          "$ref": "#/$defs/serviceDeployKubernetes"
+          "anyOf": [
+            { "$ref": "#/$defs/serviceDeployKubernetes" },
+            { "type": "null" }
+          ],
+          "description": "Kubernetes deploy settings for this env; omit or null when provider is not kubernetes."
         }
       }
     },
