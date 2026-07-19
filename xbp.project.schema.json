@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/xylex-group/xbp-mirrors/refs/heads/main/xbp.service.schema.json",
+  "$id": "https://raw.githubusercontent.com/xylex-group/xbp/main/schemas/xbp.project.schema.json",
   "title": "XBP project config (.xbp/xbp.yaml)",
   "description": "Canonical project configuration for the XBP CLI. Used by editors via yaml-language-server / VS Code YAML extension.",
   "type": "object",
@@ -166,6 +166,18 @@
       "type": ["integer", "null"],
       "minimum": 1,
       "description": "Monitor interval in seconds."
+    },
+    "oci": {
+      "$ref": "#/$defs/ociProject",
+      "description": "Project-level OCI registry credentials and defaults. Per-service image config lives under services[].oci."
+    },
+    "kubernetes": {
+      "$ref": "#/$defs/kubernetesProject",
+      "description": "Project-level Kubernetes defaults (context, namespace, apply safety). Per-service workload config lives under services[].deploy."
+    },
+    "deploy": {
+      "$ref": "#/$defs/deployProject",
+      "description": "Project-level deploy defaults and named service groups for `xbp deploy <target>`. Primary deployable units remain services[]."
     }
   },
   "$defs": {
@@ -241,7 +253,15 @@
             { "type": "null" }
           ]
         },
-        "openapi": { "$ref": "#/$defs/serviceOpenapi" }
+        "openapi": { "$ref": "#/$defs/serviceOpenapi" },
+        "oci": {
+          "$ref": "#/$defs/serviceOci",
+          "description": "Optional OCI image config for this service (used by `xbp deploy` / `xbp oci`)."
+        },
+        "deploy": {
+          "$ref": "#/$defs/serviceDeploy",
+          "description": "Optional release/deploy orchestration for this service (`xbp deploy <name>`). Distinct from commands.deploy (a local script name)."
+        }
       }
     },
     "serviceCommands": {
@@ -278,22 +298,81 @@
           }
         },
         "container": {
-          "type": ["object", "null"],
-          "additionalProperties": true,
-          "properties": {
-            "class_name": { "type": ["string", "null"] },
-            "binding": { "type": ["string", "null"] },
-            "dockerfile": { "type": ["string", "null"] },
-            "port": { "type": ["integer", "null"] },
-            "application_id": { "type": ["string", "null"] },
-            "healthcheck_path": { "type": ["string", "null"] },
-            "health_urls": {
-              "type": "array",
-              "items": { "type": "string" }
-            },
-            "expected_image_name": { "type": ["string", "null"] }
-          }
+          "$ref": "#/$defs/workerContainer"
+        },
+        "containers": {
+          "type": ["array", "null"],
+          "items": { "$ref": "#/$defs/workerContainer" },
+          "description": "Typed Wrangler Containers definitions. The singular `container` field remains supported for legacy projects."
+        },
+        "durable_objects": {
+          "$ref": "#/$defs/workerDurableObjects"
         }
+      }
+    },
+    "workerContainer": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "class_name": { "type": ["string", "null"] },
+        "binding": { "type": ["string", "null"] },
+        "dockerfile": { "type": ["string", "null"] },
+        "build_context": { "type": ["string", "null"] },
+        "image": { "type": ["string", "null"] },
+        "port": { "type": ["integer", "null"] },
+        "instance_type": { "type": ["string", "null"] },
+        "max_instances": { "type": ["integer", "null"], "minimum": 0 },
+        "application_id": { "type": ["string", "null"] },
+        "healthcheck_path": { "type": ["string", "null"] },
+        "health_urls": { "type": "array", "items": { "type": "string" } },
+        "expected_image_name": { "type": ["string", "null"] },
+        "rollout_active_grace_period": { "type": ["integer", "null"], "minimum": 0 },
+        "rollout_step_percentage": { "type": "array", "items": { "type": "integer", "minimum": 0, "maximum": 100 } },
+        "regions": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "workerDurableObjectBinding": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["name", "class_name"],
+      "properties": {
+        "name": { "type": "string" },
+        "class_name": { "type": "string" },
+        "script_name": { "type": ["string", "null"] },
+        "environment": { "type": ["string", "null"] }
+      }
+    },
+    "workerDurableObjectMigration": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["tag"],
+      "properties": {
+        "tag": { "type": "string" },
+        "new_classes": { "type": "array", "items": { "type": "string" } },
+        "new_sqlite_classes": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "workerDurableObjectNamespace": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["name", "class"],
+      "properties": {
+        "id": { "type": ["string", "null"] },
+        "name": { "type": "string" },
+        "script": { "type": ["string", "null"] },
+        "class": { "type": "string" },
+        "class_name": { "type": ["string", "null"] },
+        "use_sqlite": { "type": "boolean" },
+        "use_containers": { "type": "boolean" }
+      }
+    },
+    "workerDurableObjects": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "bindings": { "type": "array", "items": { "$ref": "#/$defs/workerDurableObjectBinding" } },
+        "migrations": { "type": "array", "items": { "$ref": "#/$defs/workerDurableObjectMigration" } },
+        "namespaces": { "type": "array", "items": { "$ref": "#/$defs/workerDurableObjectNamespace" } }
       }
     },
     "versionDomain": {
@@ -371,12 +450,12 @@
       "properties": {
         "repository": {
           "type": ["string", "null"],
-          "description": "owner/repo when origin cannot be inferred."
+          "description": "owner/repo when origin cannot be inferred. Also accepted as a bare string under github:."
         },
         "auto_push_on_commit": {
           "type": "boolean",
           "default": true,
-          "description": "When true, `xbp commit` pushes after creating the commit."
+          "description": "When true, auto-commit flows (`xbp commit`, version bumps, generated config commits) push after creating the commit. Push uses stash-safe rebase when behind/diverged (see also `xbp push`)."
         },
         "release_branch": {
           "type": ["object", "null"],
@@ -431,7 +510,7 @@
           "type": "array",
           "items": {
             "type": "string",
-            "examples": ["shell", "powershell", "npm", "homebrew", "msi"]
+            "examples": ["shell", "msi", "powershell", "npm", "homebrew"]
           }
         },
         "targets": {
@@ -559,6 +638,220 @@
           "additionalProperties": { "type": "integer" }
         },
         "annotate_source": { "type": ["boolean", "null"] }
+      }
+    },
+    "ociProject": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Top-level OCI defaults (registries / credentials). Services reference images under services[].oci.",
+      "properties": {
+        "registries": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/ociRegistry" },
+          "description": "Map of registry host → credentials (e.g. ghcr.io)."
+        },
+        "default_registry": {
+          "type": ["string", "null"],
+          "description": "Default registry host when services omit a full image host."
+        }
+      }
+    },
+    "ociRegistry": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "provider": {
+          "type": ["string", "null"],
+          "description": "Credential provider hint: github, dockerhub, aws, gcp, azure, generic.",
+          "examples": ["github", "dockerhub", "generic"]
+        },
+        "username": { "type": ["string", "null"] },
+        "token_source": {
+          "type": ["string", "null"],
+          "description": "Where to read the token: github, env:VAR, keychain, etc.",
+          "examples": ["github", "env:GHCR_TOKEN"]
+        },
+        "url": {
+          "type": ["string", "null"],
+          "description": "Optional registry base URL override."
+        }
+      }
+    },
+    "serviceOci": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Per-service container image settings.",
+      "properties": {
+        "image": {
+          "type": ["string", "null"],
+          "description": "Image repository reference without required tag (e.g. ghcr.io/org/app)."
+        },
+        "tag": {
+          "type": ["string", "null"],
+          "description": "Explicit image tag. Prefer tag_from when versioning with XBP."
+        },
+        "tag_from": {
+          "type": ["string", "null"],
+          "description": "Derive tag from project_version, service_version, git_sha, or none.",
+          "examples": ["project_version", "service_version", "git_sha"]
+        },
+        "dockerfile": {
+          "type": ["string", "null"],
+          "description": "Dockerfile path relative to service root_directory or project root."
+        },
+        "context": {
+          "type": ["string", "null"],
+          "description": "Build context path (defaults to root_directory or .)."
+        },
+        "platforms": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Target platforms (e.g. linux/amd64, linux/arm64)."
+        },
+        "build_args": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    },
+    "kubernetesProject": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Shared Kubernetes defaults for deploy providers.",
+      "properties": {
+        "default_context": {
+          "type": ["string", "null"],
+          "description": "kubectl context. Empty string means current context with confirmation policy."
+        },
+        "default_namespace": {
+          "type": ["string", "null"],
+          "default": "default"
+        },
+        "require_context_confirmation_for_apply": {
+          "type": "boolean",
+          "default": true,
+          "description": "When true, mutating apply/deploy prompts unless non-interactive --yes."
+        },
+        "kubeconfig": {
+          "type": ["string", "null"],
+          "description": "Optional KUBECONFIG path override."
+        }
+      }
+    },
+    "deployProject": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Project deploy defaults and groups. Does not replace services[] as the primary deploy unit.",
+      "properties": {
+        "default_env": {
+          "type": ["string", "null"],
+          "description": "Default environment name for `xbp deploy` when --env is omitted.",
+          "examples": ["production", "staging"]
+        },
+        "history_dir": {
+          "type": ["string", "null"],
+          "default": ".xbp/deployments",
+          "description": "Directory for deploy plan/run history records."
+        },
+        "lock_file": {
+          "type": ["string", "null"],
+          "default": ".xbp/deploy-lock.json",
+          "description": "Optional lock file path to prevent concurrent deploys."
+        },
+        "groups": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/deployGroup" },
+          "description": "Named ordered service sets for `xbp deploy <group>` (e.g. athena)."
+        }
+      }
+    },
+    "deployGroup": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "services": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Service names in this group (membership)."
+        },
+        "order": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Deploy order (operator first, then runtimes). Defaults to services order."
+        },
+        "description": {
+          "type": ["string", "null"]
+        }
+      }
+    },
+    "serviceDeploy": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Per-service deploy orchestration (provider + per-env settings).",
+      "properties": {
+        "provider": {
+          "type": ["string", "null"],
+          "description": "Deploy provider: kubernetes, kubernetes-operator, worker, pm2, systemd, …",
+          "examples": ["kubernetes", "kubernetes-operator", "worker", "pm2"]
+        },
+        "envs": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/serviceDeployEnv" },
+          "description": "Environment-keyed deploy settings (production, staging, …)."
+        }
+      }
+    },
+    "serviceDeployEnv": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "namespace": { "type": ["string", "null"] },
+        "replicas": {
+          "type": ["integer", "null"],
+          "minimum": 0
+        },
+        "health": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "HTTP(S) health URLs to probe after rollout."
+        },
+        "kubernetes": {
+          "$ref": "#/$defs/serviceDeployKubernetes"
+        }
+      }
+    },
+    "serviceDeployKubernetes": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "manifests": {
+          "type": ["object", "null"],
+          "additionalProperties": true,
+          "properties": {
+            "base": { "type": ["string", "null"] },
+            "overlay": { "type": ["string", "null"] }
+          }
+        },
+        "workload": {
+          "type": ["string", "null"],
+          "description": "kubectl resource for rollout status (e.g. deployment/api)."
+        },
+        "service": {
+          "type": ["string", "null"],
+          "description": "Kubernetes Service name."
+        },
+        "crds_path": {
+          "type": ["string", "null"],
+          "description": "Path to CRDs for kubernetes-operator provider."
+        },
+        "install_path": {
+          "type": ["string", "null"],
+          "description": "Path to operator install manifests."
+        },
+        "selector": {
+          "type": ["string", "null"],
+          "description": "Label selector to wait on (operators)."
+        }
       }
     }
   }
