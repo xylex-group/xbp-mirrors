@@ -2,71 +2,88 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://raw.githubusercontent.com/xylex-group/xbp/main/schemas/xbp.project.schema.json",
   "title": "XBP project config (.xbp/xbp.yaml)",
-  "description": "Canonical project configuration for the XBP CLI. Used by editors via yaml-language-server / VS Code YAML extension.",
+  "description": "Canonical project configuration for the XBP CLI. Used by editors via yaml-language-server / VS Code YAML extension (`# yaml-language-server: $schema=...`). Optional object fields accept null (common after `xbp generate config` / migrate).",
+  "markdownDescription": "Canonical **XBP** project config (`.xbp/xbp.yaml`).\n\n- Required: `project_name`, `port`, `build_dir`\n- Multi-service: `services[]`\n- OpenAPI: `openapi` + `services[].openapi` (`xbp config openapi` / `xbp generate openapi`)\n- Optional objects may be `null`",
   "type": "object",
   "additionalProperties": true,
   "required": ["project_name", "port", "build_dir"],
   "properties": {
     "project_name": {
       "type": "string",
-      "description": "Human-readable project name (used in dashboards, release titles, and service defaults)."
+      "description": "Human-readable project name (dashboards, release titles, service defaults).",
+      "markdownDescription": "Human-readable project name used in dashboards, release titles, and service defaults.\n\nExamples: `XBP`, `@suitsfinance/formations`",
+      "examples": ["XBP", "@suitsfinance/formations", "my-app"]
     },
     "version": {
       "type": "string",
       "description": "Project version string (semver recommended). Default 0.1.0 when omitted on parse.",
       "default": "0.1.0",
-      "examples": ["0.1.0", "1.14.2", "4.0.0"]
+      "examples": ["0.1.0", "1.14.2", "10.41.0"]
     },
     "port": {
       "type": "integer",
       "minimum": 1,
       "maximum": 65535,
-      "description": "Primary service port for the root project / default service."
+      "description": "Primary service port for the root project / default service.",
+      "examples": [3000, 8080, 3398]
     },
     "build_dir": {
       "type": "string",
-      "description": "Build / working directory relative to the project root (often `.`)."
+      "description": "Build / working directory relative to the project root (often `.` or `./`).",
+      "examples": [".", "./", "dist"]
     },
     "app_type": {
       "type": ["string", "null"],
-      "description": "Detected or declared application type (rust, nextjs, nodejs, docker, python, …)."
+      "description": "Detected or declared application type.",
+      "examples": ["rust", "nextjs", "nodejs", "docker", "python", "expressjs"],
+      "markdownDescription": "Detected or declared application type.\n\nCommon values: `rust`, `nextjs`, `nodejs`, `expressjs`, `docker`, `python`, `openapi`, `terraform`"
     },
     "target": {
       "type": ["string", "null"],
-      "description": "Legacy alias for app/runtime target (prefer app_type / per-service target)."
+      "description": "Legacy alias for app/runtime target (prefer app_type / per-service target).",
+      "examples": ["rust", "nextjs", "nodejs", "python"]
     },
     "branch": {
       "type": ["string", "null"],
-      "description": "Legacy default git branch for the root service."
+      "description": "Legacy default git branch for the root service.",
+      "examples": ["main", "master", "develop"]
     },
     "build_command": {
       "type": ["string", "null"],
-      "description": "Root build command when not using multi-service `services[].commands`."
+      "description": "Root build command when not using multi-service `services[].commands`.",
+      "examples": ["pnpm run build", "cargo build --release"]
     },
     "start_command": {
       "type": ["string", "null"],
-      "description": "Root start command."
+      "description": "Root start command.",
+      "examples": ["pnpm run start", "./target/release/xbp"]
     },
     "install_command": {
       "type": ["string", "null"],
-      "description": "Root install/bootstrap command."
+      "description": "Root install/bootstrap command.",
+      "examples": ["pnpm install", "npm ci"]
     },
     "environment": {
       "type": ["object", "null"],
-      "description": "Environment variables (values may be literals or `${ENV}` placeholders).",
-      "additionalProperties": { "type": "string" }
+      "description": "Environment variables (literals or `${ENV}` placeholders).",
+      "markdownDescription": "Environment variables.\n\nValues may be literals or `${ENV}` placeholders resolved at runtime.",
+      "additionalProperties": { "type": "string" },
+      "examples": [{ "PORT": "3000", "DATABASE_URL": "${DATABASE_URL}" }]
     },
     "url": {
       "type": ["string", "null"],
-      "description": "Public URL for the primary service."
+      "description": "Public URL for the primary service.",
+      "examples": ["https://api.example.com", "api.eu-de2.xbp.app"]
     },
     "url_storybook": {
-      "type": ["string", "null"]
+      "type": ["string", "null"],
+      "description": "Optional Storybook public URL."
     },
     "port_storybook": {
       "type": ["integer", "null"],
       "minimum": 1,
-      "maximum": 65535
+      "maximum": 65535,
+      "description": "Optional Storybook port."
     },
     "crate_name": {
       "type": ["string", "null"],
@@ -79,6 +96,7 @@
     "services": {
       "type": ["array", "null"],
       "description": "Multi-service definitions (discovered by `xbp version discover` or hand-authored).",
+      "markdownDescription": "Multi-service definitions.\n\nEach entry needs `name`, `target`, `branch`, `port`. Configure OpenAPI under `services[].openapi` via `xbp config openapi`.",
       "items": { "$ref": "#/$defs/service" }
     },
     "workers": {
@@ -88,8 +106,9 @@
     },
     "version_targets": {
       "type": "array",
-      "description": "Project-level version manifest paths (Cargo.toml, package.json, …) always bumped with the project version.",
-      "items": { "type": "string" }
+      "description": "Project-level version manifest paths always bumped with the project version.",
+      "items": { "type": "string" },
+      "examples": [["Cargo.toml", "apps/web/package.json"]]
     },
     "version_domains": {
       "type": "array",
@@ -108,82 +127,142 @@
     },
     "versioning_disabled": {
       "type": "array",
-      "description": "Service names or root globs excluded from version bumps.",
+      "description": "Service names or root globs excluded from version bumps. Aliases: disabled_versioning_services, no_version_services.",
       "items": { "type": "string" }
     },
     "release_disabled": {
       "type": "array",
-      "description": "Service names or root globs excluded from releases.",
+      "description": "Service names or root globs excluded from releases. Aliases: disabled_release_services, no_release_services.",
       "items": { "type": "string" }
     },
     "linear": {
-      "oneOf": [
-        { "$ref": "#/$defs/linear" },
-        { "type": "null" }
+      "description": "Repo-scoped Linear settings (team defaults, release initiatives). Null clears/omits.",
+      "markdownDescription": "Repo-scoped **Linear** settings.\n\n```yaml\nlinear:\n  default_team_key: SUI\n  default_team_id: null\n  organization_name: my-org\n  release:\n    enabled: true\n    initiative_ids: [uuid]\n```",
+      "defaultSnippets": [
+        {
+          "label": "Linear team + release",
+          "body": "\n  default_team_key: ${1:TEAM}\n  default_team_id: null\n  organization_name: null\n  release:\n    enabled: true\n    initiative_ids: []\n    health: null\n    organization_name: null\n"
+        }
       ],
-      "description": "Repo-scoped Linear settings (team defaults, release initiatives)."
+      "anyOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/linear" }
+      ]
     },
     "github": {
-      "oneOf": [
-        { "type": "string", "description": "Bare owner/repo shorthand (maps to github.repository)." },
-        { "$ref": "#/$defs/github" },
-        { "type": "null" }
+      "description": "GitHub repository, auto-push, release-branch, and runners. Accepts bare owner/repo string, object, or null.",
+      "markdownDescription": "GitHub project settings.\n\n**Shorthand** (repository only):\n```yaml\ngithub: owner/repo\n```\n\n**Full object:**\n```yaml\ngithub:\n  repository: owner/repo\n  auto_push_on_commit: true\n  release_branch:\n    enabled: false\n    naming_template: releases/{VERSION}-{SERVICE_NAME}\n```",
+      "defaultSnippets": [
+        {
+          "label": "owner/repo shorthand",
+          "body": "${1:owner/repo}"
+        },
+        {
+          "label": "full GitHub config",
+          "body": "\n  repository: ${1:owner/repo}\n  auto_push_on_commit: true\n  release_branch:\n    enabled: false\n    naming_template: releases/{VERSION}-{SERVICE_NAME}\n"
+        }
       ],
-      "description": "GitHub repository, auto-push, release-branch, and runners settings. Accepts a bare owner/repo string, an object, or null."
+      "anyOf": [
+        { "type": "null" },
+        {
+          "type": "string",
+          "description": "Bare owner/repo shorthand → github.repository",
+          "pattern": "^[^/\\s]+/[^/\\s]+$",
+          "examples": ["xylex-group/xbp", "suitsfinance/formations"]
+        },
+        { "$ref": "#/$defs/github" }
+      ]
     },
     "publish": {
-      "oneOf": [
-        { "$ref": "#/$defs/publish" },
-        { "type": "null" }
+      "description": "npm / crates.io / cargo-dist publish settings (`xbp version release` / publish flows). Null when unused.",
+      "markdownDescription": "Package publish settings.\n\n```yaml\npublish:\n  crates:\n    enabled: true\n    package_name: xbp\n    manifest_path: crates/cli/Cargo.toml\n    token: ${CARGO_REGISTRY_TOKEN}\n  npm: null\n  dist:\n    enabled: true\n    installers: [shell, powershell]\n```",
+      "defaultSnippets": [
+        {
+          "label": "crates + dist",
+          "body": "\n  crates:\n    enabled: true\n    package_name: ${1:my-crate}\n    manifest_path: ${2:Cargo.toml}\n    token: ${CARGO_REGISTRY_TOKEN}\n  npm: null\n  dist:\n    enabled: true\n    packages: [${1:my-crate}]\n    installers: [shell, powershell]\n"
+        }
       ],
-      "description": "npm / crates.io / cargo-dist publish settings."
+      "anyOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/publish" }
+      ]
     },
     "openapi": {
-      "oneOf": [
-        { "$ref": "#/$defs/projectOpenapi" },
-        { "type": "null" }
+      "description": "Project-level OpenAPI generation (`xbp config openapi`, `xbp generate openapi`). Null when disabled/unset.",
+      "markdownDescription": "Project-level **OpenAPI** generation.\n\n```yaml\nopenapi:\n  enabled: true\n  auto_detect_services: true\n  generate_on_release: true\n  service_defaults:\n    spec_version: \"3.1.0\"\n    source_roots: [src]\n    outputs:\n      yaml: openapi.yaml\n      json: openapi.json\n  aggregate:\n    enabled: false\n```\n\nPer-service overrides: `services[].openapi` (incl. `aggregate_path_prefix`).",
+      "defaultSnippets": [
+        {
+          "label": "OpenAPI project defaults",
+          "body": "\n  enabled: true\n  auto_detect_services: true\n  generate_on_release: true\n  service_defaults:\n    spec_version: \"3.1.0\"\n    strict: false\n    unknown_schema: permissive\n    source_roots: [src]\n    outputs:\n      yaml: openapi.yaml\n      json: openapi.json\n  aggregate:\n    enabled: false\n"
+        }
       ],
-      "description": "Project-level OpenAPI generation settings."
+      "anyOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/projectOpenapi" }
+      ]
     },
     "todos": {
-      "oneOf": [
-        { "$ref": "#/$defs/todos" },
-        { "type": "null" }
-      ],
-      "description": "TODO→issue automation defaults for `xbp todos` (project overrides global)."
+      "description": "TODO→issue automation defaults for `xbp todos` (project overrides global). Null when unset.",
+      "markdownDescription": "Defaults for `xbp todos scan|sync`.\n\n```yaml\ntodos:\n  default_to: github\n  auto_yes: true\n  annotate_source: true\n  watch_paths: [crates, apps]\n```",
+      "anyOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/todos" }
+      ]
     },
     "database": {
-      "oneOf": [
-        { "$ref": "#/$defs/database" },
-        { "type": "null" }
+      "description": "Optional control-plane / Athena database linkage. Null when unused.",
+      "anyOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/database" }
       ]
     },
     "systemd": {
-      "oneOf": [
-        { "type": "string" },
-        { "$ref": "#/$defs/systemd" },
-        { "type": "null" }
+      "description": "Root systemd unit config (object), unit name (string), or null.",
+      "markdownDescription": "Root **systemd** settings.\n\n- `null` — unset\n- string — unit name shorthand\n- object — `environment_files`, `config_paths`, `read_write_paths`, …",
+      "anyOf": [
+        { "type": "null" },
+        {
+          "type": "string",
+          "description": "Systemd unit name shorthand"
+        },
+        { "$ref": "#/$defs/systemd" }
       ]
     },
     "systemd_service_name": {
-      "type": ["string", "null"]
+      "type": ["string", "null"],
+      "description": "Root systemd unit name when not using the string form of `systemd`."
     },
-    "kafka_brokers": { "type": ["string", "null"] },
-    "kafka_topic": { "type": ["string", "null"] },
-    "kafka_public_url": { "type": ["string", "null"] },
+    "kafka_brokers": {
+      "type": ["string", "null"],
+      "description": "Kafka broker list for log streaming / related features."
+    },
+    "kafka_topic": {
+      "type": ["string", "null"],
+      "description": "Default Kafka topic."
+    },
+    "kafka_public_url": {
+      "type": ["string", "null"],
+      "description": "Public Kafka URL when brokers are internal."
+    },
     "log_files": {
       "type": ["array", "null"],
-      "items": { "type": "string" }
+      "items": { "type": "string" },
+      "description": "Log file paths to tail / ship."
     },
-    "monitor_url": { "type": ["string", "null"] },
+    "monitor_url": {
+      "type": ["string", "null"],
+      "description": "Synthetic monitor target URL."
+    },
     "monitor_method": {
       "type": ["string", "null"],
-      "enum": ["GET", "POST", "HEAD", "PUT", "PATCH", "DELETE", null]
+      "enum": ["GET", "POST", "HEAD", "PUT", "PATCH", "DELETE", null],
+      "description": "HTTP method for synthetic monitor checks."
     },
     "monitor_expected_code": {
       "type": ["integer", "null"],
       "minimum": 100,
-      "maximum": 599
+      "maximum": 599,
+      "description": "Expected HTTP status for monitor success."
     },
     "monitor_interval": {
       "type": ["integer", "null"],
@@ -191,16 +270,32 @@
       "description": "Monitor interval in seconds."
     },
     "oci": {
-      "$ref": "#/$defs/ociProject",
-      "description": "Project-level OCI registry credentials and defaults. Per-service image config lives under services[].oci."
+      "description": "Project-level OCI registry credentials and defaults. Per-service image config: services[].oci.",
+      "anyOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/ociProject" }
+      ]
     },
     "kubernetes": {
-      "$ref": "#/$defs/kubernetesProject",
-      "description": "Project-level Kubernetes defaults (context, namespace, apply safety). Per-service workload config lives under services[].deploy."
+      "description": "Project-level Kubernetes defaults (context, namespace, apply safety).",
+      "anyOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/kubernetesProject" }
+      ]
     },
     "deploy": {
-      "$ref": "#/$defs/deployProject",
-      "description": "Project-level deploy defaults and named service groups for `xbp deploy <target>`. Primary deployable units remain services[]."
+      "description": "Project-level deploy defaults and named service groups for `xbp deploy <target>`.",
+      "anyOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/deployProject" }
+      ]
+    },
+    "discord": {
+      "description": "Project Discord webhook + per-event notification toggles (overrides global).",
+      "anyOf": [
+        { "type": "null" },
+        { "$ref": "#/$defs/discord" }
+      ]
     }
   },
   "$defs": {
@@ -208,52 +303,88 @@
       "type": "object",
       "additionalProperties": true,
       "required": ["name", "target", "branch", "port"],
+      "description": "One deployable / versionable service in a multi-service project.",
+      "markdownDescription": "Service entry. Required: **name**, **target**, **branch**, **port**.\n\nOptional OpenAPI: `openapi` (`enabled`, `source_roots`, `outputs`, `aggregate_path_prefix`).",
       "properties": {
         "name": {
           "type": "string",
-          "description": "Stable service id (not a packaging path; never include crate versions)."
+          "description": "Stable service id (not a packaging path; never include crate versions).",
+          "examples": ["xbp-cli", "@xylex-group/xbp-app", "@suitsfinance/formations"]
         },
         "target": {
           "type": "string",
-          "description": "Runtime/target kind: rust, nextjs, nodejs, expressjs, docker, python, …"
+          "description": "Runtime/target kind.",
+          "examples": ["rust", "nextjs", "nodejs", "expressjs", "docker", "python"],
+          "markdownDescription": "Runtime/target kind: `rust`, `nextjs`, `nodejs`, `expressjs`, `docker`, `python`, …"
+        },
+        "target_freeze": {
+          "type": ["boolean", "null"],
+          "default": false,
+          "description": "When true, discovery/generate must not auto-overwrite `target` (e.g. Dockerfile detection). Aliases: freeze_target, target_frozen. Default false.",
+          "markdownDescription": "When **true**, `xbp version discover` / service registration will **not** replace this service's `target` from filesystem detection (Dockerfile → docker, etc.).\n\nDefault: `false` (omit or set false). Aliases: `freeze_target`, `target_frozen`."
         },
         "branch": {
           "type": "string",
-          "description": "Default git branch for this service."
+          "description": "Default git branch for this service.",
+          "examples": ["main"]
         },
         "port": {
           "type": "integer",
           "minimum": 1,
-          "maximum": 65535
+          "maximum": 65535,
+          "description": "Service listen port."
         },
         "root_directory": {
           "type": ["string", "null"],
-          "description": "Project-relative service root (e.g. services/athena-auth, crates/cli)."
+          "description": "Project-relative service root (e.g. `services/athena-auth`, `crates/cli`, `./`).",
+          "examples": ["./", "apps/web", "crates/cli"]
         },
         "environment": {
           "type": ["object", "null"],
+          "description": "Service-level env vars (literals or `${ENV}`).",
           "additionalProperties": { "type": "string" }
         },
-        "url": { "type": ["string", "null"] },
-        "healthcheck_path": { "type": ["string", "null"] },
+        "url": {
+          "type": ["string", "null"],
+          "description": "Public service URL."
+        },
+        "healthcheck_path": {
+          "type": ["string", "null"],
+          "description": "HTTP path for health checks (e.g. `/health`, `/docs`).",
+          "examples": ["/health", "/docs", "/api/health"]
+        },
         "restart_policy": {
           "type": ["string", "null"],
+          "description": "Process restart policy.",
           "examples": ["on_failure", "always", "no"]
         },
         "restart_policy_max_failure_count": {
           "type": ["integer", "null"],
-          "minimum": 0
+          "minimum": 0,
+          "description": "Max restarts under on_failure policy."
         },
         "start_wrapper": {
           "type": ["string", "null"],
+          "description": "How the process is supervised.",
           "examples": ["pm2", "systemd", "none"]
         },
-        "commands": { "$ref": "#/$defs/serviceCommands" },
-        "force_run_from_root": { "type": ["boolean", "null"] },
+        "commands": {
+          "$ref": "#/$defs/serviceCommands",
+          "description": "Lifecycle and custom scripts (pre, install, build, start, dev, plus arbitrary names)."
+        },
+        "force_run_from_root": {
+          "type": ["boolean", "null"],
+          "description": "When true, run commands from project root instead of root_directory."
+        },
         "version_targets": {
           "type": ["array", "null"],
           "items": { "type": "string" },
           "description": "Manifests to bump for this service (Cargo.toml, package.json, …)."
+        },
+        "depends_on": {
+          "type": ["array", "null"],
+          "items": { "type": "string" },
+          "description": "Service names this service depends on (deploy graph edges)."
         },
         "watch_paths": {
           "type": ["array", "null"],
@@ -262,82 +393,142 @@
         },
         "versioning": {
           "type": ["boolean", "null"],
-          "description": "When false, exclude from version bumps. Aliases: versioning_enabled, enable_versioning."
+          "description": "When false, exclude from version bumps. Aliases: versioning_enabled, enable_versioning.",
+          "default": true
         },
         "release": {
           "type": ["boolean", "null"],
-          "description": "When false, exclude from releases (bumps may still run). Aliases: release_enabled, enable_release."
+          "description": "When false, exclude from releases (bumps may still run). Aliases: release_enabled, enable_release.",
+          "default": true
         },
-        "systemd_service_name": { "type": ["string", "null"] },
+        "systemd_service_name": {
+          "type": ["string", "null"],
+          "description": "Systemd unit name for this service."
+        },
         "systemd": {
-          "oneOf": [
+          "description": "Systemd unit config (object), unit name (string), or null.",
+          "anyOf": [
+            { "type": "null" },
             { "type": "string" },
-            { "$ref": "#/$defs/systemd" },
-            { "type": "null" }
+            { "$ref": "#/$defs/systemd" }
           ]
         },
         "openapi": {
-          "oneOf": [
-            { "$ref": "#/$defs/serviceOpenapi" },
-            { "type": "null" }
+          "description": "Per-service OpenAPI overrides (`xbp config openapi`, `xbp generate openapi --service`).",
+          "markdownDescription": "Per-service OpenAPI settings.\n\n```yaml\nopenapi:\n  enabled: true\n  source_roots: [src]\n  outputs:\n    yaml: openapi.yaml\n    json: openapi.json\n  aggregate_path_prefix: /@myorg/my-service\n  framework: null   # rust | node | python | auto\n```",
+          "defaultSnippets": [
+            {
+              "label": "service OpenAPI",
+              "body": "\n  enabled: true\n  source_roots: [src]\n  outputs:\n    yaml: openapi.yaml\n    json: openapi.json\n  aggregate_path_prefix: /${1:service-name}\n"
+            }
+          ],
+          "anyOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/serviceOpenapi" }
           ]
         },
         "oci": {
-          "oneOf": [
-            { "$ref": "#/$defs/serviceOci" },
-            { "type": "null" }
-          ],
-          "description": "Optional OCI image config for this service (used by `xbp deploy` / `xbp oci`)."
+          "description": "Optional OCI image config for this service (`xbp deploy` / `xbp oci`).",
+          "anyOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/serviceOci" }
+          ]
         },
         "deploy": {
-          "oneOf": [
-            { "$ref": "#/$defs/serviceDeploy" },
-            { "type": "null" }
-          ],
-          "description": "Optional release/deploy orchestration for this service (`xbp deploy <name>`). Distinct from commands.deploy (a local script name)."
+          "description": "Deploy orchestration for this service (`xbp deploy <name>`). Distinct from commands.deploy.",
+          "anyOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/serviceDeploy" }
+          ]
+        },
+        "discord": {
+          "description": "Per-service Discord notification overrides.",
+          "anyOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/serviceDiscord" }
+          ]
         }
       }
     },
     "serviceCommands": {
       "type": "object",
-      "additionalProperties": { "type": "string" },
-      "properties": {
-        "pre": { "type": ["string", "null"] },
-        "install": { "type": ["string", "null"] },
-        "build": { "type": ["string", "null"] },
-        "start": { "type": ["string", "null"] },
-        "dev": { "type": ["string", "null"] }
+      "description": "Known lifecycle keys plus arbitrary custom command names (test, lint, publish, deploy, …).",
+      "markdownDescription": "Service commands map.\n\nKnown: `pre`, `install`, `build`, `start`, `dev` (string or null).\nCustom keys allowed (e.g. `test`, `lint`, `deploy:ci`).",
+      "additionalProperties": {
+        "type": ["string", "null"]
       },
-      "description": "Known keys plus arbitrary custom command names (test, lint, publish, …)."
+      "properties": {
+        "pre": {
+          "type": ["string", "null"],
+          "description": "Command run before install/build."
+        },
+        "install": {
+          "type": ["string", "null"],
+          "description": "Dependency install command."
+        },
+        "build": {
+          "type": ["string", "null"],
+          "description": "Build command."
+        },
+        "start": {
+          "type": ["string", "null"],
+          "description": "Start / serve command."
+        },
+        "dev": {
+          "type": ["string", "null"],
+          "description": "Local development command."
+        }
+      }
     },
     "worker": {
       "type": "object",
       "additionalProperties": true,
       "required": ["name", "root"],
+      "description": "Cloudflare Worker entry managed by XBP.",
       "properties": {
-        "name": { "type": "string" },
+        "name": {
+          "type": "string",
+          "description": "Worker short name (e.g. api, docs, web)."
+        },
         "root": {
           "type": "string",
           "description": "Project-relative Worker root (wrangler.toml / wrangler.jsonc)."
         },
-        "script_name": { "type": ["string", "null"] },
-        "service": { "type": ["string", "null"] },
+        "script_name": {
+          "type": ["string", "null"],
+          "description": "Deployed Worker script name on Cloudflare."
+        },
+        "service": {
+          "type": ["string", "null"],
+          "description": "Linked services[] name for this worker."
+        },
         "deploy": {
           "type": ["object", "null"],
           "additionalProperties": true,
+          "description": "Worker deploy command hooks.",
           "properties": {
-            "command": { "type": ["string", "null"] },
-            "ci_script": { "type": ["string", "null"] },
-            "select_script": { "type": ["string", "null"] }
+            "command": {
+              "type": ["string", "null"],
+              "description": "Local deploy command (e.g. pnpm run deploy)."
+            },
+            "ci_script": {
+              "type": ["string", "null"],
+              "description": "CI deploy helper script path."
+            },
+            "select_script": {
+              "type": ["string", "null"],
+              "description": "Script that selects deploy command variant."
+            }
           }
         },
         "container": {
-          "$ref": "#/$defs/workerContainer"
+          "$ref": "#/$defs/workerContainer",
+          "description": "Legacy singular Containers definition."
         },
         "containers": {
           "type": ["array", "null"],
           "items": { "$ref": "#/$defs/workerContainer" },
-          "description": "Typed Wrangler Containers definitions. The singular `container` field remains supported for legacy projects."
+          "description": "Typed Wrangler Containers definitions."
         },
         "durable_objects": {
           "$ref": "#/$defs/workerDurableObjects"
@@ -347,21 +538,31 @@
     "workerContainer": {
       "type": "object",
       "additionalProperties": true,
+      "description": "Cloudflare Containers binding for a Worker.",
       "properties": {
         "class_name": { "type": ["string", "null"] },
         "binding": { "type": ["string", "null"] },
         "dockerfile": { "type": ["string", "null"] },
         "build_context": { "type": ["string", "null"] },
         "image": { "type": ["string", "null"] },
-        "port": { "type": ["integer", "null"] },
+        "port": { "type": ["integer", "null"], "minimum": 1, "maximum": 65535 },
         "instance_type": { "type": ["string", "null"] },
         "max_instances": { "type": ["integer", "null"], "minimum": 0 },
         "application_id": { "type": ["string", "null"] },
         "healthcheck_path": { "type": ["string", "null"] },
         "health_urls": { "type": "array", "items": { "type": "string" } },
         "expected_image_name": { "type": ["string", "null"] },
+        "image_tag_keep_count": { "type": ["integer", "null"], "minimum": 0 },
+        "allow_unchanged_container_image": { "type": "boolean" },
+        "required_secrets": { "type": "array", "items": { "type": "string" } },
+        "version_var": { "type": ["string", "null"] },
+        "instance_name_template": { "type": ["string", "null"] },
+        "default_rollout": { "type": ["string", "null"] },
         "rollout_active_grace_period": { "type": ["integer", "null"], "minimum": 0 },
-        "rollout_step_percentage": { "type": "array", "items": { "type": "integer", "minimum": 0, "maximum": 100 } },
+        "rollout_step_percentage": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0, "maximum": 100 }
+        },
         "regions": { "type": "array", "items": { "type": "string" } }
       }
     },
@@ -394,7 +595,7 @@
         "id": { "type": ["string", "null"] },
         "name": { "type": "string" },
         "script": { "type": ["string", "null"] },
-        "class": { "type": "string" },
+        "class": { "type": "string", "description": "DO class name (alias: class_name)." },
         "class_name": { "type": ["string", "null"] },
         "use_sqlite": { "type": "boolean" },
         "use_containers": { "type": "boolean" }
@@ -403,16 +604,27 @@
     "workerDurableObjects": {
       "type": "object",
       "additionalProperties": true,
+      "description": "Durable Objects bindings, migrations, and namespaces for a Worker.",
       "properties": {
-        "bindings": { "type": "array", "items": { "$ref": "#/$defs/workerDurableObjectBinding" } },
-        "migrations": { "type": "array", "items": { "$ref": "#/$defs/workerDurableObjectMigration" } },
-        "namespaces": { "type": "array", "items": { "$ref": "#/$defs/workerDurableObjectNamespace" } }
+        "bindings": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/workerDurableObjectBinding" }
+        },
+        "migrations": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/workerDurableObjectMigration" }
+        },
+        "namespaces": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/workerDurableObjectNamespace" }
+        }
       }
     },
     "versionDomain": {
       "type": "object",
       "additionalProperties": true,
       "required": ["name", "root", "version"],
+      "description": "Independent version domain for multi-package monorepos.",
       "properties": {
         "name": { "type": "string" },
         "root": { "type": "string" },
@@ -430,8 +642,12 @@
           "items": {
             "type": "object",
             "required": ["kind", "path"],
+            "additionalProperties": true,
             "properties": {
-              "kind": { "type": "string" },
+              "kind": {
+                "type": "string",
+                "description": "Surface kind (package_json, cargo_toml, …)."
+              },
               "path": { "type": "string" },
               "key": { "type": ["string", "null"] },
               "marker": { "type": ["string", "null"] },
@@ -444,7 +660,10 @@
         },
         "allowed_bumps": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string",
+            "examples": ["major", "minor", "patch"]
+          }
         },
         "validation_commands": {
           "type": "array",
@@ -461,66 +680,175 @@
     "linear": {
       "type": "object",
       "additionalProperties": true,
+      "description": "Linear team + release initiative settings.",
       "properties": {
-        "default_team_id": { "type": ["string", "null"] },
+        "default_team_id": {
+          "type": ["string", "null"],
+          "description": "Linear team UUID for create / TODO sync."
+        },
         "default_team_key": {
           "type": ["string", "null"],
-          "description": "Team key such as XLX."
+          "description": "Team key such as XLX or SUI when default_team_id is unset.",
+          "examples": ["XLX", "SUI"]
         },
         "organization_name": {
           "type": ["string", "null"],
           "description": "Linear org slug for human URLs. Alias: org_name."
         },
         "release": {
-          "type": ["object", "null"],
-          "additionalProperties": true,
-          "description": "Release → Linear initiative publish settings."
+          "description": "Release → Linear initiative publish settings.",
+          "anyOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/linearRelease" }
+          ]
+        }
+      }
+    },
+    "linearRelease": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Linear initiative publishing for version releases.",
+      "properties": {
+        "enabled": {
+          "type": ["boolean", "null"],
+          "description": "When true, publish release notes to Linear initiatives."
+        },
+        "initiative_ids": {
+          "type": ["array", "null"],
+          "items": { "type": "string" },
+          "description": "Linear initiative UUIDs to update."
+        },
+        "organization_name": {
+          "type": ["string", "null"],
+          "description": "Org slug override for release posts. Alias: org_name."
+        },
+        "health": {
+          "type": ["string", "null"],
+          "description": "Optional initiative health label for the release post."
         }
       }
     },
     "github": {
       "type": "object",
       "additionalProperties": true,
+      "description": "Full GitHub project object (prefer bare string when only repository is set).",
       "properties": {
         "repository": {
           "type": ["string", "null"],
-          "description": "owner/repo when origin cannot be inferred. Also accepted as a bare string under github:."
+          "description": "owner/repo when origin cannot be inferred. Also accepted as bare string under github:.",
+          "pattern": "^[^/\\s]+/[^/\\s]+$",
+          "examples": ["xylex-group/xbp"]
         },
         "auto_push_on_commit": {
           "type": "boolean",
           "default": true,
-          "description": "When true, auto-commit flows (`xbp commit`, version bumps, generated config commits) push after creating the commit. Push uses stash-safe rebase when behind/diverged (see also `xbp push`)."
+          "description": "When true, auto-commit flows push after creating the commit (stash-safe rebase when behind)."
         },
         "release_branch": {
-          "type": ["object", "null"],
-          "additionalProperties": true
+          "description": "Optional release branch naming policy.",
+          "anyOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/githubReleaseBranch" }
+          ]
         },
         "runners": {
-          "type": ["object", "null"],
-          "additionalProperties": true
+          "description": "Self-hosted / managed GitHub runners project defaults.",
+          "anyOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/githubRunners" }
+          ]
         }
+      }
+    },
+    "githubReleaseBranch": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Release branch creation settings.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true, create release branches using naming_template."
+        },
+        "naming_template": {
+          "type": ["string", "null"],
+          "description": "Branch name template. Placeholders: {VERSION}, {SERVICE_NAME}. Alias: template.",
+          "default": "releases/{VERSION}-{SERVICE_NAME}",
+          "examples": ["releases/{VERSION}-{SERVICE_NAME}", "release/{VERSION}"]
+        }
+      }
+    },
+    "githubRunners": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "GitHub Actions runner fleet defaults for this project.",
+      "properties": {
+        "default_organization": {
+          "type": ["string", "null"],
+          "description": "GitHub org that owns the runners."
+        },
+        "default_runner_group": {
+          "type": ["string", "null"],
+          "description": "Default runner group name."
+        },
+        "visibility": {
+          "type": ["string", "null"],
+          "description": "Runner visibility (organization, selected, all, …)."
+        },
+        "default_labels": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Labels applied to new runners."
+        },
+        "preferred_runtime": {
+          "type": ["string", "null"],
+          "description": "Preferred runner execution runtime."
+        },
+        "work_directory": {
+          "type": ["string", "null"],
+          "description": "Working directory on the runner host."
+        },
+        "templates": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/githubRunnerTemplate" },
+          "description": "Named runner templates."
+        }
+      }
+    },
+    "githubRunnerTemplate": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "name": { "type": ["string", "null"] },
+        "runner_group": { "type": ["string", "null"] },
+        "labels": { "type": "array", "items": { "type": "string" } },
+        "runtime": { "type": ["string", "null"] }
       }
     },
     "publish": {
       "type": "object",
       "additionalProperties": true,
+      "description": "npm / crates.io / cargo-dist publish configuration.",
       "properties": {
         "npm": {
-          "oneOf": [
-            { "$ref": "#/$defs/publishTarget" },
-            { "type": "null" }
+          "description": "npm publish target, or null if unused.",
+          "anyOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/publishTarget" }
           ]
         },
         "crates": {
-          "oneOf": [
-            { "$ref": "#/$defs/publishTarget" },
-            { "type": "null" }
+          "description": "crates.io publish target, or null if unused.",
+          "anyOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/publishTarget" }
           ]
         },
         "dist": {
-          "oneOf": [
-            { "$ref": "#/$defs/publishDist" },
-            { "type": "null" }
+          "description": "cargo-dist settings, or null if unused.",
+          "anyOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/publishDist" }
           ]
         }
       }
@@ -528,21 +856,75 @@
     "publishTarget": {
       "type": "object",
       "additionalProperties": true,
+      "description": "Single registry publish target (npm or crates).",
+      "markdownDescription": "Publish target for npm or crates.io.\n\nCommon fields: `enabled`, `package_name`, `manifest_path`, `working_directory`, `token`, `use_wsl`.",
       "properties": {
-        "enabled": { "type": ["boolean", "null"] },
-        "package_name": { "type": ["string", "null"] },
-        "working_directory": { "type": ["string", "null"] },
-        "manifest_path": { "type": ["string", "null"] },
-        "token": { "type": ["string", "null"] },
+        "enabled": {
+          "type": ["boolean", "null"],
+          "description": "Whether this target is published during release."
+        },
+        "package_name": {
+          "type": ["string", "null"],
+          "description": "Published package name."
+        },
+        "working_directory": {
+          "type": ["string", "null"],
+          "description": "Directory to run publish commands from (project-relative)."
+        },
+        "manifest_path": {
+          "type": ["string", "null"],
+          "description": "Cargo.toml or package.json path for this package."
+        },
+        "token": {
+          "type": ["string", "null"],
+          "description": "Auth token or `${ENV}` placeholder (never commit raw secrets).",
+          "examples": ["${CARGO_REGISTRY_TOKEN}", "${NPM_TOKEN}"]
+        },
         "preflight_commands": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": { "type": "string" },
+          "description": "Commands run before publish (tests, builds)."
         },
-        "publish_command": { "type": ["string", "null"] },
-        "use_wsl": { "type": ["boolean", "null"] },
-        "wsl_distribution": { "type": ["string", "null"] },
-        "generate_npmrc": { "type": ["boolean", "null"] },
-        "access": { "type": ["string", "null"] }
+        "publish_command": {
+          "type": ["string", "null"],
+          "description": "Override full publish shell command."
+        },
+        "use_wsl": {
+          "type": ["boolean", "null"],
+          "description": "Run publish inside WSL (Windows hosts)."
+        },
+        "wsl_distribution": {
+          "type": ["string", "null"],
+          "description": "WSL distro name when use_wsl is true."
+        },
+        "generate_npmrc": {
+          "type": ["boolean", "null"],
+          "description": "Write .npmrc for npm auth (npm target)."
+        },
+        "access": {
+          "type": ["string", "null"],
+          "description": "npm access level (public, restricted).",
+          "examples": ["public", "restricted"]
+        },
+        "retry_no_verify": {
+          "type": ["boolean", "null"],
+          "description": "Retry cargo publish --no-verify after local tarball verification fails (crates)."
+        },
+        "no_verify_retry_packages": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Package names that always get a --no-verify retry."
+        },
+        "visibility_timeout_seconds": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "description": "Seconds to wait for published version on the registry (default ~180)."
+        },
+        "visibility_poll_seconds": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "description": "Poll interval while waiting for registry visibility (default ~5)."
+        }
       }
     },
     "publishDist": {
@@ -550,111 +932,377 @@
       "additionalProperties": true,
       "description": "cargo-dist settings for GitHub release assets/installers.",
       "properties": {
-        "enabled": { "type": ["boolean", "null"] },
+        "enabled": {
+          "type": ["boolean", "null"],
+          "description": "When true (or dist-workspace.toml present), build/upload dist artifacts on release."
+        },
         "packages": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": { "type": "string" },
+          "description": "Package names to ship."
         },
         "installers": {
           "type": "array",
           "items": {
             "type": "string",
             "examples": ["shell", "msi", "powershell", "npm", "homebrew"]
-          }
+          },
+          "description": "cargo-dist installers to generate."
         },
         "targets": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": { "type": "string" },
+          "description": "Rust target triples. Empty keeps host-mode defaults."
         },
         "artifacts_modes": {
           "type": "array",
-          "items": { "type": "string" },
-          "description": "Alias: artifacts. host | local | global."
+          "items": {
+            "type": "string",
+            "examples": ["host", "local", "global"]
+          },
+          "description": "Artifact modes: host | local | global. Alias: artifacts."
         },
-        "allow_dirty": { "type": ["boolean", "null"] },
-        "generate_ci": { "type": ["boolean", "null"] },
-        "tool": { "type": ["string", "null"] }
+        "allow_dirty": {
+          "type": ["boolean", "null"],
+          "description": "Pass --allow-dirty to dist (default true during release ledgers)."
+        },
+        "generate_ci": {
+          "type": ["boolean", "null"],
+          "description": "Run dist generate --mode ci when missing/out of date."
+        },
+        "tool": {
+          "type": ["string", "null"],
+          "description": "dist CLI binary name (dist or cargo-dist).",
+          "examples": ["dist", "cargo-dist"]
+        }
+      }
+    },
+    "openapiOutputs": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Generated OpenAPI artifact paths (relative to service root or aggregate root).",
+      "properties": {
+        "yaml": {
+          "type": ["string", "null"],
+          "description": "YAML output path (e.g. openapi.yaml). Empty/null to skip.",
+          "examples": ["openapi.yaml", "docs/openapi.yaml"]
+        },
+        "json": {
+          "type": ["string", "null"],
+          "description": "JSON output path (e.g. openapi.json). Empty/null to skip.",
+          "examples": ["openapi.json"]
+        }
+      }
+    },
+    "openapiServiceDefaults": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Defaults applied to every service OpenAPI generate unless overridden.",
+      "properties": {
+        "spec_version": {
+          "type": ["string", "null"],
+          "description": "OpenAPI spec version.",
+          "examples": ["3.1.0", "3.0.3"],
+          "default": "3.1.0"
+        },
+        "strict": {
+          "type": ["boolean", "null"],
+          "description": "When true, fail on unresolved / incomplete schema inference.",
+          "default": false
+        },
+        "source_roots": {
+          "type": ["array", "null"],
+          "items": { "type": "string" },
+          "description": "Default source directories relative to each service root.",
+          "examples": [["src"], ["src", "app"]]
+        },
+        "outputs": {
+          "anyOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/openapiOutputs" }
+          ]
+        },
+        "unknown_schema": {
+          "type": ["string", "null"],
+          "description": "How to handle untyped / unknown schemas.",
+          "examples": ["permissive", "strict", "omit"],
+          "default": "permissive"
+        }
+      }
+    },
+    "openapiAggregate": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Combine per-service specs into one multi-service OpenAPI document.",
+      "properties": {
+        "enabled": {
+          "type": ["boolean", "null"],
+          "description": "When true, produce an aggregate OpenAPI document after service generates.",
+          "default": false
+        },
+        "outputs": {
+          "description": "Where to write the aggregate document.",
+          "anyOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/openapiOutputs" }
+          ]
+        },
+        "overlay": {
+          "type": ["string", "null"],
+          "description": "Optional overlay file path merged into the aggregate."
+        }
       }
     },
     "projectOpenapi": {
       "type": "object",
       "additionalProperties": true,
+      "description": "Project-level OpenAPI generation settings.",
+      "markdownDescription": "Project OpenAPI block (`xbp config openapi`).\n\n- `service_defaults` — applied to each service\n- `aggregate` — optional multi-service combine\n- Per-service: `services[].openapi`",
       "properties": {
-        "enabled": { "type": ["boolean", "null"] },
-        "auto_detect_services": { "type": ["boolean", "null"] },
-        "generate_on_release": { "type": ["boolean", "null"] },
+        "enabled": {
+          "type": ["boolean", "null"],
+          "description": "Master switch for OpenAPI generation.",
+          "default": true
+        },
+        "auto_detect_services": {
+          "type": ["boolean", "null"],
+          "description": "When true, include services without an explicit openapi block when generating --all.",
+          "default": true
+        },
+        "generate_on_release": {
+          "type": ["boolean", "null"],
+          "description": "When true, run OpenAPI generation during version release (requires openapi-gen feature).",
+          "default": true
+        },
         "service_defaults": {
-          "type": ["object", "null"],
-          "additionalProperties": true
+          "description": "Defaults for per-service generation (spec_version, source_roots, outputs, …).",
+          "anyOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/openapiServiceDefaults" }
+          ]
         },
         "aggregate": {
-          "type": ["object", "null"],
-          "additionalProperties": true
+          "description": "Multi-service aggregate document settings.",
+          "anyOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/openapiAggregate" }
+          ]
         }
       }
     },
     "serviceOpenapi": {
       "type": "object",
       "additionalProperties": true,
-      "description": "Per-service OpenAPI overrides."
+      "description": "Per-service OpenAPI overrides and generation inputs.",
+      "markdownDescription": "Per-service OpenAPI config.\n\nImportant fields:\n- `enabled`\n- `source_roots`\n- `outputs.yaml` / `outputs.json`\n- `aggregate_path_prefix` — prefix routes when combining services (e.g. `/@org/svc`)\n- `framework` — `rust` | `node` | `python` (empty = auto)",
+      "properties": {
+        "enabled": {
+          "type": ["boolean", "null"],
+          "description": "When false, skip this service during generate. When null/omitted, auto_detect may still include it."
+        },
+        "framework": {
+          "type": ["string", "null"],
+          "description": "Framework hint for route discovery (rust, node, python). Empty/null = auto-detect.",
+          "examples": ["rust", "node", "python"]
+        },
+        "spec_version": {
+          "type": ["string", "null"],
+          "description": "Override OpenAPI version for this service.",
+          "examples": ["3.1.0", "3.0.3"]
+        },
+        "strict": {
+          "type": ["boolean", "null"],
+          "description": "Override project default strict mode for this service."
+        },
+        "source_roots": {
+          "type": ["array", "null"],
+          "items": { "type": "string" },
+          "description": "Source directories relative to this service root_directory.",
+          "examples": [["src"], ["app", "src"]]
+        },
+        "outputs": {
+          "description": "Per-service output paths (relative to service root).",
+          "anyOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/openapiOutputs" }
+          ]
+        },
+        "unknown_schema": {
+          "type": ["string", "null"],
+          "description": "How to treat unknown types in this service.",
+          "examples": ["permissive", "strict", "omit"]
+        },
+        "overlay": {
+          "type": ["string", "null"],
+          "description": "Optional OpenAPI overlay path merged after generation."
+        },
+        "aggregate_path_prefix": {
+          "type": ["string", "null"],
+          "description": "Path prefix applied when combining services (avoids route collisions).",
+          "markdownDescription": "Prefix for aggregate merge, e.g. `/athena` or `/@suitsfinance/formations`.\n\nRequired uniqueness across services when `openapi.aggregate.enabled` is true.",
+          "examples": ["/@suitsfinance/formations", "/athena", "/api"]
+        },
+        "server_derivation": {
+          "description": "How servers[] entries are derived for this service.",
+          "anyOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/openapiServerDerivation" }
+          ]
+        },
+        "websocket_routes": {
+          "type": ["array", "null"],
+          "items": { "$ref": "#/$defs/openapiWebSocketRoute" },
+          "description": "Explicit WebSocket route annotations for OpenAPI."
+        }
+      }
+    },
+    "openapiServerDerivation": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Derive OpenAPI servers from service URL and/or local defaults.",
+      "properties": {
+        "from_service_url": {
+          "type": ["boolean", "null"],
+          "description": "When true, add a server entry from services[].url."
+        },
+        "service_url_description": {
+          "type": ["string", "null"],
+          "description": "Description for the service-url server entry."
+        },
+        "local": {
+          "anyOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/openapiLocalServer" }
+          ]
+        }
+      }
+    },
+    "openapiLocalServer": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Local development server entry for OpenAPI servers[].",
+      "properties": {
+        "enabled": { "type": ["boolean", "null"] },
+        "scheme": {
+          "type": ["string", "null"],
+          "examples": ["http", "https"]
+        },
+        "host": {
+          "type": ["string", "null"],
+          "examples": ["localhost", "127.0.0.1"]
+        },
+        "description": { "type": ["string", "null"] }
+      }
+    },
+    "openapiWebSocketRoute": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["path"],
+      "description": "WebSocket route metadata for OpenAPI generation.",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "WebSocket path (e.g. /ws).",
+          "examples": ["/ws", "/realtime"]
+        },
+        "client_message_schema": { "type": ["string", "null"] },
+        "server_message_schema": { "type": ["string", "null"] },
+        "message_format": {
+          "type": ["string", "null"],
+          "examples": ["json", "text", "binary"]
+        },
+        "server_sends_first": { "type": ["boolean", "null"] }
+      }
     },
     "systemd": {
       "type": "object",
       "additionalProperties": true,
+      "description": "Systemd unit hardening / path settings.",
       "properties": {
         "environment_files": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": { "type": "string" },
+          "description": "EnvironmentFile= paths."
         },
         "config_paths": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": { "type": "string" },
+          "description": "Read-only config paths."
         },
         "read_write_paths": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": { "type": "string" },
+          "description": "ReadWritePaths=."
         },
         "runtime_directories": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": { "type": "string" },
+          "description": "RuntimeDirectory= names."
         },
         "state_directories": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": { "type": "string" },
+          "description": "StateDirectory= names."
         }
       }
     },
     "database": {
       "type": "object",
       "additionalProperties": true,
+      "description": "Optional database / control-plane linkage.",
       "properties": {
         "enabled": { "type": ["boolean", "null"] },
-        "backend": { "type": ["string", "null"] },
-        "url_env": { "type": ["string", "null"] },
-        "key_env": { "type": ["string", "null"] },
-        "schema": { "type": ["string", "null"] }
+        "backend": {
+          "type": ["string", "null"],
+          "description": "Backend id (athena, postgres, supabase, …)."
+        },
+        "url_env": {
+          "type": ["string", "null"],
+          "description": "Env var name holding the database URL."
+        },
+        "key_env": {
+          "type": ["string", "null"],
+          "description": "Env var name holding the API key."
+        },
+        "schema": {
+          "type": ["string", "null"],
+          "description": "SQL schema name when applicable."
+        }
       }
     },
     "todos": {
       "type": "object",
       "additionalProperties": true,
       "description": "Defaults for `xbp todos scan|sync` (project overrides global config).",
+      "markdownDescription": "TODO → issue automation.\n\nCommands: `xbp todos scan`, `xbp todos sync`, `xbp todos status`.",
       "properties": {
         "default_to": {
           "type": ["string", "null"],
-          "enum": ["linear", "github", "both", null]
+          "enum": ["linear", "github", "both", null],
+          "description": "Default sync target for created issues."
         },
-        "auto_yes": { "type": ["boolean", "null"] },
-        "prompt_sync_after_scan": { "type": ["boolean", "null"] },
+        "auto_yes": {
+          "type": ["boolean", "null"],
+          "description": "When true, sync without multi-select prompts."
+        },
+        "prompt_sync_after_scan": {
+          "type": ["boolean", "null"],
+          "description": "After scan, offer to run sync (default true)."
+        },
         "linear_labels": {
           "type": ["array", "null"],
-          "items": { "type": "string" }
+          "items": { "type": "string" },
+          "description": "Linear labels on created issues (default xbp-todo)."
         },
         "github_labels": {
           "type": ["array", "null"],
-          "items": { "type": "string" }
+          "items": { "type": "string" },
+          "description": "GitHub labels on created issues (default xbp-todo)."
         },
-        "linear_assignee": { "type": ["string", "null"] },
+        "linear_assignee": {
+          "type": ["string", "null"],
+          "description": "Linear assignee: me, name, email, or id."
+        },
         "linear_project": {
           "type": ["string", "null"],
           "description": "Linear project name, id, or slug for created issues."
@@ -662,7 +1310,7 @@
         "watch_paths": {
           "type": ["array", "null"],
           "items": { "type": "string" },
-          "description": "Repo-relative path prefixes to scan for TODOs (empty = whole tree)."
+          "description": "Repo-relative path prefixes to scan (empty = whole tree)."
         },
         "linear_link_wait_secs": {
           "type": ["integer", "null"],
@@ -672,7 +1320,7 @@
         "linear_link_poll_ms": {
           "type": ["integer", "null"],
           "minimum": 100,
-          "description": "Poll interval in ms while waiting for Linear auto-link."
+          "description": "Poll interval (ms) while waiting for Linear auto-link."
         },
         "purge_duplicate_linear": {
           "type": ["boolean", "null"],
@@ -680,19 +1328,112 @@
         },
         "kinds": {
           "type": ["array", "null"],
-          "items": { "type": "string" }
+          "items": {
+            "type": "string",
+            "examples": ["TODO", "FIXME", "XXX", "HACK"]
+          },
+          "description": "Marker kinds to sync (default all)."
         },
         "priority_by_kind": {
           "type": ["object", "null"],
-          "additionalProperties": { "type": "integer" }
+          "additionalProperties": { "type": "integer", "minimum": 0, "maximum": 4 },
+          "description": "Map marker kind → Linear priority (0–4)."
         },
-        "annotate_source": { "type": ["boolean", "null"] }
+        "annotate_source": {
+          "type": ["boolean", "null"],
+          "description": "Append created issue ids onto the source TODO line."
+        },
+        "openrouter_enrich": {
+          "type": ["boolean", "null"],
+          "description": "Opt-in: expand terse TODOs via OpenRouter before create.",
+          "default": false
+        },
+        "openrouter_enrich_model": {
+          "type": ["string", "null"],
+          "description": "OpenRouter model for enrichment (falls back to commit model).",
+          "examples": ["openai/gpt-4o-mini"]
+        }
+      }
+    },
+    "discord": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Discord webhook notifications for release/publish events.",
+      "properties": {
+        "enabled": {
+          "type": ["boolean", "null"],
+          "description": "Master switch (defaults true when webhook_url is set)."
+        },
+        "webhook_url": {
+          "type": ["string", "null"],
+          "description": "Discord incoming webhook URL or ${DISCORD_WEBHOOK_URL}. Aliases: url, webhook."
+        },
+        "username": {
+          "type": ["string", "null"],
+          "description": "Webhook display name (default XBP)."
+        },
+        "avatar_url": {
+          "type": ["string", "null"],
+          "description": "Optional avatar URL."
+        },
+        "events": {
+          "anyOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/discordEvents" }
+          ]
+        }
+      }
+    },
+    "discordEvents": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Per-event Discord toggles (omitted keys default enabled).",
+      "properties": {
+        "version_release": {
+          "type": ["boolean", "null"],
+          "description": "Git tag + GitHub release completed."
+        },
+        "crates_io": {
+          "type": ["boolean", "null"],
+          "description": "crates.io publish. Aliases: crates, crates-io."
+        },
+        "npm": {
+          "type": ["boolean", "null"],
+          "description": "npm publish. Alias: npmjs."
+        },
+        "linear": {
+          "type": ["boolean", "null"],
+          "description": "Linear release post. Alias: linear_post."
+        },
+        "cargo_dist": {
+          "type": ["boolean", "null"],
+          "description": "cargo-dist build/status. Aliases: dist, cargo-dist."
+        },
+        "oci": {
+          "type": ["boolean", "null"],
+          "description": "OCI image publish. Aliases: oci_registry, docker."
+        }
+      }
+    },
+    "serviceDiscord": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Per-service Discord overrides (inherits project/global).",
+      "properties": {
+        "enabled": { "type": ["boolean", "null"] },
+        "webhook_url": { "type": ["string", "null"] },
+        "events": {
+          "anyOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/discordEvents" }
+          ]
+        }
       }
     },
     "ociProject": {
       "type": "object",
       "additionalProperties": true,
-      "description": "Top-level OCI defaults (registries / credentials). Services reference images under services[].oci.",
+      "description": "Top-level OCI defaults (registries / credentials).",
       "properties": {
         "registries": {
           "type": "object",
@@ -701,7 +1442,8 @@
         },
         "default_registry": {
           "type": ["string", "null"],
-          "description": "Default registry host when services omit a full image host."
+          "description": "Default registry host when services omit a full image host.",
+          "examples": ["ghcr.io"]
         }
       }
     },
@@ -711,8 +1453,8 @@
       "properties": {
         "provider": {
           "type": ["string", "null"],
-          "description": "Credential provider hint: github, dockerhub, aws, gcp, azure, generic.",
-          "examples": ["github", "dockerhub", "generic"]
+          "description": "Credential provider hint.",
+          "examples": ["github", "dockerhub", "aws", "gcp", "azure", "generic"]
         },
         "username": { "type": ["string", "null"] },
         "token_source": {
@@ -733,7 +1475,8 @@
       "properties": {
         "image": {
           "type": ["string", "null"],
-          "description": "Image repository reference without required tag (e.g. ghcr.io/org/app)."
+          "description": "Image repository reference without required tag.",
+          "examples": ["ghcr.io/org/app"]
         },
         "tag": {
           "type": ["string", "null"],
@@ -742,7 +1485,7 @@
         "tag_from": {
           "type": ["string", "null"],
           "description": "Derive tag from project_version, service_version, git_sha, or none.",
-          "examples": ["project_version", "service_version", "git_sha"]
+          "examples": ["project_version", "service_version", "git_sha", "none"]
         },
         "dockerfile": {
           "type": ["string", "null"],
@@ -755,7 +1498,8 @@
         "platforms": {
           "type": "array",
           "items": { "type": "string" },
-          "description": "Target platforms (e.g. linux/amd64, linux/arm64)."
+          "description": "Target platforms (e.g. linux/amd64, linux/arm64).",
+          "examples": [["linux/amd64", "linux/arm64"]]
         },
         "build_args": {
           "type": "object",
@@ -774,7 +1518,8 @@
         },
         "default_namespace": {
           "type": ["string", "null"],
-          "default": "default"
+          "default": "default",
+          "examples": ["default", "production"]
         },
         "require_context_confirmation_for_apply": {
           "type": "boolean",
@@ -810,7 +1555,7 @@
         "groups": {
           "type": "object",
           "additionalProperties": { "$ref": "#/$defs/deployGroup" },
-          "description": "Named ordered service sets for `xbp deploy <group>` (e.g. athena)."
+          "description": "Named ordered service sets for `xbp deploy <group>`."
         }
       }
     },
@@ -826,7 +1571,7 @@
         "order": {
           "type": "array",
           "items": { "type": "string" },
-          "description": "Deploy order (operator first, then runtimes). Defaults to services order."
+          "description": "Deploy order. Defaults to services order."
         },
         "description": {
           "type": ["string", "null"]
@@ -840,8 +1585,8 @@
       "properties": {
         "provider": {
           "type": ["string", "null"],
-          "description": "Deploy provider: kubernetes, kubernetes-operator, worker, pm2, systemd, …",
-          "examples": ["kubernetes", "kubernetes-operator", "worker", "pm2"]
+          "description": "Deploy provider.",
+          "examples": ["kubernetes", "kubernetes-operator", "worker", "pm2", "systemd"]
         },
         "envs": {
           "type": "object",
@@ -854,10 +1599,14 @@
       "type": "object",
       "additionalProperties": true,
       "properties": {
-        "namespace": { "type": ["string", "null"] },
+        "namespace": {
+          "type": ["string", "null"],
+          "description": "Kubernetes namespace override for this env."
+        },
         "replicas": {
           "type": ["integer", "null"],
-          "minimum": 0
+          "minimum": 0,
+          "description": "Desired replica count when applicable."
         },
         "health": {
           "type": "array",
@@ -865,11 +1614,11 @@
           "description": "HTTP(S) health URLs to probe after rollout."
         },
         "kubernetes": {
+          "description": "Kubernetes deploy settings for this env; omit or null when provider is not kubernetes.",
           "anyOf": [
-            { "$ref": "#/$defs/serviceDeployKubernetes" },
-            { "type": "null" }
-          ],
-          "description": "Kubernetes deploy settings for this env; omit or null when provider is not kubernetes."
+            { "type": "null" },
+            { "$ref": "#/$defs/serviceDeployKubernetes" }
+          ]
         }
       }
     },
@@ -881,8 +1630,14 @@
           "type": ["object", "null"],
           "additionalProperties": true,
           "properties": {
-            "base": { "type": ["string", "null"] },
-            "overlay": { "type": ["string", "null"] }
+            "base": {
+              "type": ["string", "null"],
+              "description": "Base kustomize/manifest path."
+            },
+            "overlay": {
+              "type": ["string", "null"],
+              "description": "Overlay path for this env."
+            }
           }
         },
         "workload": {
