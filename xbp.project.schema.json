@@ -343,7 +343,7 @@
         },
         {
           "label": "full GitHub config",
-          "body": "\n  repository: ${1:owner/repo}\n  auto_push_on_commit: true\n  release_branch:\n    enabled: false\n    naming_template: releases/{VERSION}-{SERVICE_NAME}\n"
+          "body": "\n  repository: ${1:owner/repo}\n  auto_push_on_commit: true\n  release_branch:\n    enabled: false\n    naming_template: releases/{SERVICE_NAME}-{VERSION}\n"
         }
       ],
       "properties": {
@@ -1620,11 +1620,15 @@
             "string",
             "null"
           ],
-          "description": "Branch name template. Placeholders: {VERSION}, {SERVICE_NAME}. Alias: template.",
-          "default": "releases/{VERSION}-{SERVICE_NAME}",
+          "description": "Branch name template. Placeholders: {VERSION}, {TAG}, {SERVICE_NAME}, ${GITHUB_VERSION}, ${GITHUB_TAG}, ${SERVICE_NAME}. Must include a version token. Alias: template.",
+          "default": "releases/{SERVICE_NAME}-{VERSION}",
+          "minLength": 1,
+          "pattern": "^\\S+$",
           "examples": [
+            "releases/{SERVICE_NAME}-{VERSION}",
             "releases/{VERSION}-{SERVICE_NAME}",
-            "release/{VERSION}"
+            "release/{VERSION}",
+            "rel/${GITHUB_TAG}"
           ]
         }
       }
@@ -2840,14 +2844,28 @@
         "null"
       ],
       "additionalProperties": true,
-      "description": "Per-event Discord toggles (omitted keys default enabled).",
+      "description": "Per-event Discord toggles. Most omitted keys default enabled; github_tag and github_release default off (summary covers them).",
       "properties": {
         "version_release": {
           "type": [
             "boolean",
             "null"
           ],
-          "description": "Git tag + GitHub release completed."
+          "description": "Full release summary (title + notes excerpt)."
+        },
+        "github_tag": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Git tag created/pushed (intermediate; default off). Aliases: tag, git_tag."
+        },
+        "github_release": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "GitHub Release object created (intermediate; default off). Aliases: gh_release, release_created."
         },
         "crates_io": {
           "type": [
@@ -2883,6 +2901,48 @@
             "null"
           ],
           "description": "OCI image publish. Aliases: oci_registry, docker."
+        },
+        "workers_deploy": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Cloudflare Workers deploy (batched). Aliases: workers, worker_deploy."
+        },
+        "kubernetes_deploy": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Kubernetes deploy (batched). Aliases: k8s, kubernetes."
+        },
+        "deploy": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Other deploy outcomes. Alias: deployment."
+        },
+        "openapi": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "OpenAPI generation. Aliases: openapi_gen, openapi_generate."
+        },
+        "issues": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Issues created via xbp issues sync (always grouped). Aliases: issue, todos, todo_issues."
+        },
+        "commit": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "xbp commit / short commit messages. Aliases: commits, git_commit."
         }
       }
     },
@@ -3226,14 +3286,69 @@
             "string",
             "null"
           ],
-          "description": "Deploy provider.",
+          "description": "Deploy provider. kubernetes/kubernetes-operator use kubectl; cloudflare-containers/worker call xbp cloudflare deploy and never apply k8s manifests.",
           "examples": [
             "kubernetes",
             "kubernetes-operator",
+            "cloudflare-containers",
             "worker",
+            "local",
             "pm2",
             "systemd"
           ]
+        },
+        "worker": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Cloudflare workers[].name when provider is cloudflare-containers or worker. Defaults to the service name."
+        },
+        "rollout": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Cloudflare containers rollout strategy (immediate | gradual | none).",
+          "examples": [
+            "immediate",
+            "gradual",
+            "none"
+          ]
+        },
+        "destinations": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "provider": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "worker": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "rollout": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "enabled": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              }
+            }
+          },
+          "description": "Named deploy destinations selectable via `xbp deploy <svc> --to cloudflare|kubernetes|railway|…`."
         },
         "envs": {
           "type": "object",
